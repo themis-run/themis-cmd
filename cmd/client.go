@@ -1,45 +1,31 @@
 package cmd
 
 import (
-	"bufio"
-	"os"
-	"strings"
+	"sync"
+
+	"go.themis.run/themis-cmd/conf"
+	"go.themis.run/themisclient"
 )
 
-type ThemisCmd struct {
-}
+var client *themisclient.Client
+var one sync.Once
 
-func (c *ThemisCmd) Start() {
-	for {
-		PrintRowHead()
-		var cmd string
-		var err error
-		if cmd, err = bufio.NewReader(os.Stdin).ReadString('\n'); err != nil {
-			return
+func GetThemisClient() *themisclient.Client {
+	var err error
+	one.Do(func() {
+		serverName, address := conf.GetThemisServer()
+		opt := []themisclient.Option{
+			themisclient.WithServerName(serverName),
+			themisclient.WithServerAddress(address),
 		}
-		command, args := c.parseCommand(cmd)
-		c.doCommand(command, args)
-	}
-}
 
-var commandSeparator = " "
+		config := themisclient.NewConfigration(opt...)
 
-func (c *ThemisCmd) parseCommand(text string) (string, []string) {
-	s := strings.Split(text, commandSeparator)
-	if len(s) <= 0 {
-		return "", nil
+		client, err = themisclient.NewClient(config)
+	})
+	if err != nil {
+		panic(err)
 	}
 
-	str := make([]string, 0)
-	for _, v := range s {
-		str = append(str, strings.TrimSpace(v))
-	}
-
-	return str[0], str[1:]
-}
-
-func (c *ThemisCmd) doCommand(command string, args []string) {
-	f := Get(Command(command))
-	result := f(args...)
-	PrintResult(result)
+	return client
 }

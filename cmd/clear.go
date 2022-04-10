@@ -18,31 +18,17 @@ func init() {
 	Register("clear", Clear)
 }
 
-type ClearResult struct {
-	err error
-}
-
-func NewClearResult(err error) *ClearResult {
-	return &ClearResult{
-		err: err,
-	}
-}
-
-func (c *ClearResult) String() string {
-	return c.err.Error()
-}
-
 var platformUnSupport = errors.New("Your platform is unsupported! I can't clear terminal screen :(")
 
 func Clear(args ...string) Result {
 	c, ok := clear[runtime.GOOS]
 	if !ok {
-		return NewClearResult(platformUnSupport)
+		return NewErrorResult(platformUnSupport)
 	}
 
 	c.Stdout = os.Stdout
 	if err := c.Run(); err != nil {
-		return NewClearResult(err)
+		return NewErrorResult(err)
 	}
 
 	return nil
